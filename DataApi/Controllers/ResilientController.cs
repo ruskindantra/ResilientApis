@@ -59,13 +59,29 @@ namespace DataApi.Controllers
         }
 
         [HttpGet, Route("faultingbulkhead")]
-        public async Task<IActionResult> FaultingBulkHead()
+        public async Task<IActionResult> FaultingBulkhead()
         {
             _logger.LogInformation("FaultingBulkHead called");
             Thread.Sleep(3000);
             //await Task.CompletedTask;
             //return StatusCode((int)HttpStatusCode.InternalServerError);
             throw new HttpRequestException();
+        }
+
+        [HttpGet, Route("fallback")]
+        public async Task<IActionResult> Fallback()
+        {
+            _logger.LogInformation("Fallback called");
+            await Task.CompletedTask;
+            return Ok("Successful");
+        }
+
+        [HttpGet, Route("cache")]
+        public async Task<IActionResult> Cache()
+        {
+            _logger.LogInformation("Cache called");
+            await Task.CompletedTask;
+            return Ok("Successful");
         }
     }
 }

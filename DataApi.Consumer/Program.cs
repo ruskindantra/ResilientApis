@@ -6,6 +6,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Polly;
+using Polly.Caching;
+using Polly.Caching.Memory;
+using Polly.Registry;
 using Serilog;
 
 namespace DataApi.Consumer
@@ -35,6 +38,7 @@ namespace DataApi.Consumer
                     services.AddSingleton<EndpointTester>();
                     services.AddHttpClient();
                     services.AddSingleton<IHostedService, App>();
+
                     RegisterResilientConsumers(services);
                 })
                 .ConfigureLogging((hostingContext, logging) =>
@@ -92,8 +96,48 @@ namespace DataApi.Consumer
                 onRetry);
             });
 
+            services.AddTransient<BulkheadExecutor>();
+            services.AddSingleton(provider => new Func<BulkheadExecutor>(() => provider.GetService<BulkheadExecutor>()));
+
             services.AddHttpClient("5000_bulkhead").ConfigureHttpClient(httpClient => {
                 httpClient.BaseAddress = new Uri(baseUrl);
+            });
+
+            services.AddHttpClient("5000_fallback").ConfigureHttpClient(httpClient => {
+                httpClient.BaseAddress = new Uri(baseUrl);
+            })
+            .AddTransientHttpErrorPolicy(builder =>
+            {
+                Random jitterer = new Random(); 
+                return builder.FallbackAsync(new HttpResponseMessage
+                {
+                    Content = new StringContent("Fallback value returned")
+                }, result => 
+                {
+                    Log.Error($"Fallback value substituted, due to: {result.Exception}.");
+                    return Task.CompletedTask;
+                });
+            });
+
+            services.AddHttpClient("5000_cache").ConfigureHttpClient(httpClient => {
+                httpClient.BaseAddress = new Uri(baseUrl);
+            });
+            
+            services.AddSingleton<PolicyRegistryExecutor>();
+            services.AddMemoryCache();
+            services.AddSingleton<IAsyncCacheProvider, MemoryCacheProvider>();
+
+            var cachePolicy = Policy.CacheAsync<HttpResponseMessage>(services.BuildServiceProvider().GetRequiredService<IAsyncCacheProvider>(), TimeSpan.FromMinutes(1), 
+                (context, value) => Log.Information("OnCacheGet"),
+                (context, value) => Log.Information("OnCacheMiss"),
+                (context, value) => Log.Information("OnCachePut"),
+                (context, value, exception) => Log.Information("OnCacheGetError"),
+                (context, value, exception) => Log.Information("OnCachePutError"));
+            services.AddSingleton<IPolicyRegistry<string>, PolicyRegistry>(serviceProvider =>
+            {
+                PolicyRegistry registry = new PolicyRegistry();
+                registry.Add("cachePolicy", cachePolicy);
+                return registry;
             });
         }
     }

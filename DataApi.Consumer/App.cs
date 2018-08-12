@@ -12,12 +12,19 @@ namespace DataApi.Consumer
         private readonly ILogger<App> _logger;
         private readonly IApplicationLifetime _applicationLifetime;
         private readonly EndpointTester _endpointTester;
+        private readonly Func<BulkheadExecutor> _bulkheadExecutorFactory;
+        private readonly PolicyRegistryExecutor _policyRegistryExecutor;
 
-        public App(ILogger<App> logger, IApplicationLifetime applicationLifetime, EndpointTester endpointTester)
+        public App(ILogger<App> logger, 
+            IApplicationLifetime applicationLifetime, 
+            EndpointTester endpointTester, Func<BulkheadExecutor> bulkheadExecutorFactory, 
+            PolicyRegistryExecutor policyRegistryExecutor)
         {
             _logger = logger;
             _applicationLifetime = applicationLifetime;
             _endpointTester = endpointTester;
+            _bulkheadExecutorFactory = bulkheadExecutorFactory;
+            _policyRegistryExecutor = policyRegistryExecutor;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -70,9 +77,17 @@ namespace DataApi.Consumer
                         {
                             useBulkhead = false;
                         }
-                        _endpointTester.ExectueBulkheadCalls(cancellationTokenSource5.Token, "5000_bulkhead", "/api/resilient/bulkhead", "/api/resilient/faultingbulkhead", useBulkhead);
+                        _bulkheadExecutorFactory().ExectueBulkheadCalls(cancellationTokenSource5.Token, "5000_bulkhead", "/api/resilient/bulkhead", "/api/resilient/faultingbulkhead", useBulkhead);
                         
                         cancellationTokenSource5.CancelAfter(10000);
+                    }
+                    else if (string.Compare(option, "6", StringComparison.CurrentCultureIgnoreCase) == 0)
+                    {
+                        _endpointTester.ExecuteGetCall("5000_fallback", "/api/resilient/fallback");
+                    }
+                    else if (string.Compare(option, "7", StringComparison.CurrentCultureIgnoreCase) == 0)
+                    {
+                        _policyRegistryExecutor.ExecuteGetCall("5000_cache", "/api/resilient/cache", "cachePolicy");
                     }
                     else
                     {
@@ -93,6 +108,8 @@ namespace DataApi.Consumer
             _logger.LogInformation("Press 4 for jitter");
             _logger.LogInformation("Press 5 for bulkhead");
             _logger.LogInformation("Press 5a for bulkhead (w/o bulkhead)");
+            _logger.LogInformation("Press 6 for fallback");
+            _logger.LogInformation("Press 7 for cache");
             _logger.LogInformation("Press O for reprinting options");
             _logger.LogInformation("Press Q to quit");
         }
