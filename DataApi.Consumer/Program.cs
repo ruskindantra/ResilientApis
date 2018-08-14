@@ -109,7 +109,6 @@ namespace DataApi.Consumer
             })
             .AddTransientHttpErrorPolicy(builder =>
             {
-                Random jitterer = new Random(); 
                 return builder.FallbackAsync(new HttpResponseMessage
                 {
                     Content = new StringContent("Fallback value returned")

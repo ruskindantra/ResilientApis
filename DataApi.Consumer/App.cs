@@ -14,20 +14,17 @@ namespace DataApi.Consumer
         private readonly EndpointTester _endpointTester;
         private readonly Func<BulkheadExecutor> _bulkheadExecutorFactory;
         private readonly PolicyRegistryExecutor _policyRegistryExecutor;
-        private readonly TimeoutPolicyExecutor _timeoutPolicyRegistryExecutor;
 
         public App(ILogger<App> logger, 
             IApplicationLifetime applicationLifetime, 
             EndpointTester endpointTester, Func<BulkheadExecutor> bulkheadExecutorFactory, 
-            PolicyRegistryExecutor policyRegistryExecutor,
-            TimeoutPolicyExecutor timeoutPolicyRegistryExecutor)
+            PolicyRegistryExecutor policyRegistryExecutor)
         {
             _logger = logger;
             _applicationLifetime = applicationLifetime;
             _endpointTester = endpointTester;
             _bulkheadExecutorFactory = bulkheadExecutorFactory;
             _policyRegistryExecutor = policyRegistryExecutor;
-            _timeoutPolicyRegistryExecutor = timeoutPolicyRegistryExecutor;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
