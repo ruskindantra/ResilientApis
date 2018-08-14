@@ -89,6 +89,10 @@ namespace DataApi.Consumer
                     {
                         _policyRegistryExecutor.ExecuteGetCall("5000_cache", "/api/resilient/cache", "cachePolicy");
                     }
+                    else if (string.Compare(option, "8", StringComparison.CurrentCultureIgnoreCase) == 0)
+                    {
+                        _policyRegistryExecutor.ExecuteGetCall("5000_timout", "/api/resilient/timeout", "timeoutPolicy");
+                    }
                     else
                     {
                         _logger.LogInformation($"Invalid option selected {option}");
@@ -110,6 +114,7 @@ namespace DataApi.Consumer
             _logger.LogInformation("Press 5a for bulkhead (w/o bulkhead)");
             _logger.LogInformation("Press 6 for fallback");
             _logger.LogInformation("Press 7 for cache");
+            _logger.LogInformation("Press 8 for timeout");
             _logger.LogInformation("Press O for reprinting options");
             _logger.LogInformation("Press Q to quit");
         }

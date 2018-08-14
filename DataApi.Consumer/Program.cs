@@ -9,6 +9,7 @@ using Polly;
 using Polly.Caching;
 using Polly.Caching.Memory;
 using Polly.Registry;
+using Polly.Timeout;
 using Serilog;
 
 namespace DataApi.Consumer
@@ -122,6 +123,10 @@ namespace DataApi.Consumer
             services.AddHttpClient("5000_cache").ConfigureHttpClient(httpClient => {
                 httpClient.BaseAddress = new Uri(baseUrl);
             });
+
+            services.AddHttpClient("5000_timeout").ConfigureHttpClient(httpClient => {
+                httpClient.BaseAddress = new Uri(baseUrl);
+            });
             
             services.AddSingleton<PolicyRegistryExecutor>();
             services.AddMemoryCache();
@@ -133,10 +138,17 @@ namespace DataApi.Consumer
                 (context, value) => Log.Information("OnCachePut"),
                 (context, value, exception) => Log.Information("OnCacheGetError"),
                 (context, value, exception) => Log.Information("OnCachePutError"));
+
+            var timeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, t, executedTask) => 
+            {
+                Log.Information("Timeout occurred");
+                return Task.CompletedTask;
+            });
             services.AddSingleton<IPolicyRegistry<string>, PolicyRegistry>(serviceProvider =>
             {
                 PolicyRegistry registry = new PolicyRegistry();
                 registry.Add("cachePolicy", cachePolicy);
+                registry.Add("timeoutPolicy", timeoutPolicy);
                 return registry;
             });
         }

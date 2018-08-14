@@ -25,7 +25,12 @@ namespace DataApi.Consumer
         public void ExecuteGetCall(string name, string endpoint, string policyName)
         {
             var policy = _policyRegistry.Get<IAsyncPolicy<HttpResponseMessage>>(policyName);
+            if (policy == null)
+            {
+            _logger.LogInformation("Hello world2");
+            }
 
+            _logger.LogInformation("Hello world");
             policy.ExecuteAsync(async (contxt) => 
             {
                 HttpResponseMessage result = null;
