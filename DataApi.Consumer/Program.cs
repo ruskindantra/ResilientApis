@@ -132,18 +132,25 @@ namespace DataApi.Consumer
             services.AddMemoryCache();
             services.AddSingleton<IAsyncCacheProvider, MemoryCacheProvider>();
 
-            var cachePolicy = Policy.CacheAsync<HttpResponseMessage>(services.BuildServiceProvider().GetRequiredService<IAsyncCacheProvider>(), TimeSpan.FromMinutes(1), 
+            CachePolicy<HttpResponseMessage> cachePolicy = Policy.CacheAsync<HttpResponseMessage>(services.BuildServiceProvider().GetRequiredService<IAsyncCacheProvider>(), TimeSpan.FromMinutes(1), 
                 (context, value) => Log.Information("OnCacheGet"),
                 (context, value) => Log.Information("OnCacheMiss"),
                 (context, value) => Log.Information("OnCachePut"),
                 (context, value, exception) => Log.Information("OnCacheGetError"),
                 (context, value, exception) => Log.Information("OnCachePutError"));
 
-            var timeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, t, executedTask) => 
+            //TimeoutPolicy<HttpResponseMessage> timeoutPolicy = Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(2).Seconds, TimeoutStrategy.Optimistic, (context, t, executedTask) =>
+            //{
+            //    Log.Information("Timeout occurred");
+            //    return Task.CompletedTask;
+            //});
+
+            TimeoutPolicy<HttpResponseMessage> timeoutPolicy = Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(2).Seconds, TimeoutStrategy.Pessimistic, (context, t, executedTask) =>
             {
                 Log.Information("Timeout occurred");
                 return Task.CompletedTask;
             });
+
             services.AddSingleton<IPolicyRegistry<string>, PolicyRegistry>(serviceProvider =>
             {
                 PolicyRegistry registry = new PolicyRegistry();

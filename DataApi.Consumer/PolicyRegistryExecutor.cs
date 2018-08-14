@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Registry;
@@ -25,13 +21,8 @@ namespace DataApi.Consumer
         public void ExecuteGetCall(string name, string endpoint, string policyName)
         {
             var policy = _policyRegistry.Get<IAsyncPolicy<HttpResponseMessage>>(policyName);
-            if (policy == null)
-            {
-            _logger.LogInformation("Hello world2");
-            }
-
-            _logger.LogInformation("Hello world");
-            policy.ExecuteAsync(async (contxt) => 
+            
+            policy.ExecuteAsync(async context => 
             {
                 HttpResponseMessage result = null;
                 try

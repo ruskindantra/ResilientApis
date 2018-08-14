@@ -14,17 +14,20 @@ namespace DataApi.Consumer
         private readonly EndpointTester _endpointTester;
         private readonly Func<BulkheadExecutor> _bulkheadExecutorFactory;
         private readonly PolicyRegistryExecutor _policyRegistryExecutor;
+        private readonly TimeoutPolicyExecutor _timeoutPolicyRegistryExecutor;
 
         public App(ILogger<App> logger, 
             IApplicationLifetime applicationLifetime, 
             EndpointTester endpointTester, Func<BulkheadExecutor> bulkheadExecutorFactory, 
-            PolicyRegistryExecutor policyRegistryExecutor)
+            PolicyRegistryExecutor policyRegistryExecutor,
+            TimeoutPolicyExecutor timeoutPolicyRegistryExecutor)
         {
             _logger = logger;
             _applicationLifetime = applicationLifetime;
             _endpointTester = endpointTester;
             _bulkheadExecutorFactory = bulkheadExecutorFactory;
             _policyRegistryExecutor = policyRegistryExecutor;
+            _timeoutPolicyRegistryExecutor = timeoutPolicyRegistryExecutor;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -38,7 +41,6 @@ namespace DataApi.Consumer
 
         private void ApplicationStarted()
         {
-
             CancellationTokenSource cancellationTokenSource5 = new CancellationTokenSource();
             Task.Factory.StartNew(() =>
             {
@@ -72,11 +74,7 @@ namespace DataApi.Consumer
                     else if (string.Compare(option, "5", StringComparison.CurrentCultureIgnoreCase) == 0 ||
                         string.Compare(option, "5a", StringComparison.CurrentCultureIgnoreCase) == 0)
                     {
-                        bool useBulkhead = true;
-                        if (string.Compare(option, "5a", StringComparison.CurrentCultureIgnoreCase) == 0)
-                        {
-                            useBulkhead = false;
-                        }
+                        bool useBulkhead = string.Compare(option, "5a", StringComparison.CurrentCultureIgnoreCase) != 0;
                         _bulkheadExecutorFactory().ExectueBulkheadCalls(cancellationTokenSource5.Token, "5000_bulkhead", "/api/resilient/bulkhead", "/api/resilient/faultingbulkhead", useBulkhead);
                         
                         cancellationTokenSource5.CancelAfter(10000);
@@ -91,7 +89,14 @@ namespace DataApi.Consumer
                     }
                     else if (string.Compare(option, "8", StringComparison.CurrentCultureIgnoreCase) == 0)
                     {
-                        _policyRegistryExecutor.ExecuteGetCall("5000_timout", "/api/resilient/timeout", "timeoutPolicy");
+                        try
+                        {
+                            _policyRegistryExecutor.ExecuteGetCall("5000_timeout", "/api/resilient/timeout", "timeoutPolicy");
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogError(e, "Cannot execute timeout demo");
+                        }
                     }
                     else
                     {
