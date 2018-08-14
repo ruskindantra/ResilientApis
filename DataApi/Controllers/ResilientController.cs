@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -81,6 +82,15 @@ namespace DataApi.Controllers
         {
             _logger.LogInformation("Cache called");
             await Task.CompletedTask;
+            return Ok("Successful");
+        }
+
+        [HttpGet, Route("timeout")]
+        public async Task<IActionResult> Timeout()
+        {
+            _logger.LogInformation("Timout called");
+            await Task.Delay(5000);
+            _logger.LogInformation("Timout finished");
             return Ok("Successful");
         }
     }
